@@ -3,7 +3,7 @@ TYPEMAP
 INPUT
 
 O_OBJECT
-	$var = INT2PTR($type, pobj2class($arg, \"Qt::${(my $ttt = $type) =~ s/^(?:Perl)?([0-9A-Za-z_]+) \*/$1/;\$ttt}\", \"${Package}::$func_name() -- $var is not a blessed ${(my $ttt = $type) =~ s/^(?:Perl)?([0-9A-Za-z_]+) \*/$1/;\$ttt}\", \"${Package}::$func_name() -- ${var}->{_ptr} is NULL\"));
+	$var = INT2PTR($type, pobj2class($arg, \"${(my $ttt = $type) =~ s/^(?:Perl)?([0-9A-Za-z_]+) \*/$1/;\$ttt}\", \"${Package}::$func_name\", \"$var\"));
 	if ( $var == NULL )
 	    XSRETURN_UNDEF;
 T_AV_OBJ
@@ -11,20 +11,10 @@ T_AV_OBJ
                 AV *av = (AV*)SvRV($arg);
                 while ( av_len(av) > -1 ) {
                         SV * rhv = av_pop(av);
-                        // if( sv_isobject(rhv) && (SvTYPE(SvRV(rhv)) == SVt_PVHV) ) {
-                        //         HV *hv = (HV*)SvRV( rhv );
-                        //         SV **ssv = hv_fetch(hv, \"_ptr\", 4, 0);
-                        //         if ( ssv != NULL ) {
-                        ${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z_:]+)>/$1/;\$ttt} * clv = INT2PTR( ${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z_:]+)>/$1/;\$ttt} *, pobj2class(rhv, \"Qt::${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z_:]+)>/$1/;\$ttt}\", \"${Package}::$func_name() -- AV[ ${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z_:]+)>/$1/;\$ttt} ] is not a blessed ${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z_:]+)>/$1/;\$ttt}\", \"${Package}::$func_name() -- AV[...]->{_ptr} is NULL\"));
+                        ${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z_:]+)>/$1/;\$ttt} * clv = INT2PTR( ${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z_:]+)>/$1/;\$ttt} *, pobj2class(rhv, \"${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z_:]+)>/$1/;\$ttt}\", \"${Package}::$func_name()\", \"AV[ ${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z_:]+)>/$1/;\$ttt} ]\"));
                         if ( clv == NULL )
                     		XSRETURN_UNDEF;
                         $var << *clv;
-                        //        }
-                        // }
-                        // else {
-                        //        warn( \"${Package}::$func_name() -- AV[${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z_:]+)>/$1/;\$ttt}] is not a blessed SV\" );
-                        //        XSRETURN_UNDEF;
-                        // }
                 }
         }
 	else {
@@ -36,20 +26,10 @@ T_AV_OBJPTR
                 AV *av = (AV*)SvRV($arg);
                 while ( av_len(av) > -1 ) {
                         SV * rhv = av_pop(av);
-                        // if( sv_isobject(rhv) && (SvTYPE(SvRV(rhv)) == SVt_PVHV) ) {
-                        //         HV *hv = (HV*)SvRV( rhv );
-                        //         SV **ssv = hv_fetch(hv, \"_ptr\", 4, 0);
-                        //         if ( ssv != NULL ) {
-                        ${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z]+) \* >/$1/;\$ttt} *clv = INT2PTR( ${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z]+) \* >/$1/;\$ttt} *, pobj2class(rhv, \"Qt::${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z]+) \* >/$1/;\$ttt}\",  \"${Package}::$func_name() -- AV[ ${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z]+) \* >/$1/;\$ttt} ] is not a blessed ${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z]+) \* >/$1/;\$ttt}\", \"${Package}::$func_name() -- AV[...]->{_ptr} is NULL\" ) );
+                        ${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z]+) \* >/$1/;\$ttt} *clv = INT2PTR( ${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z]+) \* >/$1/;\$ttt} *, pobj2class(rhv, \"Qt::${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z]+) \* >/$1/;\$ttt}\",  \"${Package}::$func_name\", \"AV[ ${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z]+) \* >/$1/;\$ttt} ]\" ) );
                         if ( clv == NULL )
                                 XSRETURN_UNDEF;
                         $var << clv;
-                        //         }
-                        // }
-                        // else {
-                        //         warn( \"${Package}::$func_name() -- AV[ ${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z]+) \* >/$1/;\$ttt} ] is not a blessed SV\" );
-                        //         XSRETURN_UNDEF;
-                        // }
                 }
         }
 	else {
@@ -182,14 +162,8 @@ T_AV_OBJ
 		AV *av = newAV();
 		int asize = $var.size();
 		for ( int i = 0 ; i < asize ; ++i ) {
-			// HV *hv = newHV();
-			// SV *rv = newSV(0);
 			${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z_:]+)>/$1/;\$ttt} *clv = new ${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z_:]+)>/$1/;\$ttt} ( $var.at(i) );
-			// sv_setiv(rv, PTR2IV(clv));
-			// hv_store(hv, \"_ptr\", 4, rv, 0);
 			SV *rhv = newSV(0);
-			// rhv = sv_2mortal(sv_bless(newRV_noinc((SV*)hv), gv_stashpv(\"Qt::${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z_:]+)>/$1/;\$ttt}\",0)));
-			// rhv = sv_bless(newRV_noinc((SV*)hv), gv_stashpv(\"Qt::${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z_:]+)>/$1/;\$ttt}\",0));
 			rhv = class2pobj(PTR2IV(clv), \"Qt::${(my $ttt = $type) =~ s/^[A-Za-z]+<([A-Za-z_:]+)>/$1/;\$ttt}\", 1);
 			av_push(av, rhv);
 		};

@@ -119,7 +119,7 @@ class2pobj(IV iv, const char *class_name, int no_ptr)
 		warn( \"${Package}::$func_name() -- $var is not a blessed ${(my $ttt = $type) =~ s/^(?:Perl)?([0-9A-Za-z_]+) \* /$1/;\$ttt}\" );
 		XSRETURN_UNDEF;
 	}
-*/
+
 IV
 pobj2class(SV *sv, const char *class_name, const char *fn_warn, const char *ptr_warn)
 {
@@ -134,7 +134,30 @@ pobj2class(SV *sv, const char *class_name, const char *fn_warn, const char *ptr_
     warn( fn_warn );
     return (IV)NULL;
 }
+*/
 
+
+IV
+pobj2class(SV *sv, const char *class_name, const char *func, const char *var)
+{
+    char pclass_name[512];
+    char fn_warn[512];
+    char ptr_warn[512];
+    snprintf(pclass_name, 512, "Qt::%s", class_name);
+    snprintf(fn_warn, 512, "%s() -- %s is not blessed Qt::%s", func, var, class_name);
+    snprintf(ptr_warn, 512, "%s() -- %s->{_ptr} is NULL", func, var);
+    
+    if( sv_derived_from(sv, pclass_name) && (SvTYPE(SvRV(sv)) == SVt_PVHV) ) {
+	HV *hv = (HV*)SvRV( sv );
+	SV **ssv = hv_fetch(hv, "_ptr", 4, 0);
+	if ( ssv != NULL )
+	    return SvIV(*ssv);
+	warn( ptr_warn );
+	return (IV)NULL;
+    }
+    warn( fn_warn );
+    return (IV)NULL;
+}
 
 
 int 

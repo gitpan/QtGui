@@ -18,7 +18,7 @@
 
 # output internal info
 my $print_def = '';
-my $prenormalize = 'QAbstractPageSetupDialog';
+my $prenormalize = '';
 my $pars_param2 = '';
 my $add_out = 0;
 
@@ -1295,7 +1295,7 @@ foreach my $module ( @modules ) {
 										print FXS "(".$icl->{type}.")SvPV_nolen(ST(0));\n";
 									}
 									elsif ( $classes{$icl->{type}} ) {
-										print FXS "INT2PTR(".$icl->{type}."*, pobj2class(ST(0), \"Qt::".$icl->{type}."\", \"virtual Qt::".$curr_class[$c]."::".$icl->{orig_name}."() -- RETVAL is not blessed SV\", \"Qt::".$curr_class[$c]."::".$icl->{orig_name}."() -- ".$icl->{type}."->{_ptr} is NULL\"));\n";
+										print FXS "INT2PTR(".$icl->{type}."*, pobj2class(ST(0), \"".$icl->{type}."\", \"virtual Qt::".$curr_class[$c]."::".$icl->{orig_name}."\", \"".$icl->{type}."\"));\n";
 										print FXS "        if ( RETVAL == NULL )\n";
 										print FXS "            croak(\"error call virtual ".$icl->{orig_name}."(), ignore it.\");\n";
 										if ( $classes{$icl->{type}}{module} ) {
@@ -1433,7 +1433,7 @@ foreach my $module ( @modules ) {
 											$jj-- if $cl->{st};
 											$jj += 2 if not $cl->{type} and $object_class;
 											if ( $classes{$pars[$j]{tp}} ) {
-												$end_xs .= '        '.$pars[$j]{dt}.' = INT2PTR('.$pars[$j]{tp}.'*, pobj2class(ST('.$jj.'), "Qt::'.$pars[$j]{tp}.'", "Qt::'.$curr_class[$c].'::'.$cl->{orig_name}.'() -- '.$pars[$j]{dt}.' is not blessed SV", "Qt::'.$curr_class[$c].'::'.$cl->{orig_name}.'() -- '.$pars[$j]{tp}.'->{_ptr} is NULL"));'."\n";
+												$end_xs .= '        '.$pars[$j]{dt}.' = INT2PTR('.$pars[$j]{tp}.'*, pobj2class(ST('.$jj.'), "'.$pars[$j]{tp}.'", "Qt::'.$curr_class[$c].'::'.$cl->{orig_name}.'", "'.$pars[$j]{dt}.'"));'."\n";
 												$end_xs .= "        if ( ".$pars[$j]{dt}." == NULL )\n";
 												$end_xs .= "                XSRETURN_UNDEF;\n";
 											}
@@ -1466,7 +1466,7 @@ foreach my $module ( @modules ) {
 													$end_xs .= "                AV *av = (AV*)SvRV( ST(".$jj.") );\n";
 													$end_xs .= "                while ( av_len(av) > -1 ) {\n";
 													$end_xs .= "                        SV * rhv = av_pop(av);\n";
-													$end_xs .= '                        '.$ar_class.' * clv = INT2PTR('.$ar_class.'*, pobj2class(rhv, "Qt::'.$ar_class.'", "Qt::'.$curr_class[$c].'::'.$cl->{orig_name}.'() -- AV['.$ar_class.'] is not a blessed SV", "Qt::'.$curr_class[$c].'::'.$cl->{orig_name}.'() -- AV key->_ptr is NULL"));'."\n";
+													$end_xs .= '                        '.$ar_class.' * clv = INT2PTR('.$ar_class.'*, pobj2class(rhv, "'.$ar_class.'", "Qt::'.$curr_class[$c].'::'.$cl->{orig_name}.'", "AV['.$ar_class.']"));'."\n";
 													$end_xs .= "                        if ( clv == NULL )\n";
 													$end_xs .= "                                XSRETURN_UNDEF;\n";
 													$end_xs .= "                        ".$pars[$j]{dt}." << *clv;\n";
@@ -1479,7 +1479,7 @@ foreach my $module ( @modules ) {
 													$end_xs .= "                AV *av = (AV*)SvRV( ST(".$jj.") );\n";
 													$end_xs .= "                while ( av_len(av) > -1 ) {\n";
 													$end_xs .= "                        SV * rhv = av_pop(av);\n";
-													$end_xs .= '                        '.$ar_class.' * clv = INT2PTR('.$ar_class.'*, pobj2class(rhv, "Qt::'.$ar_class.'", "Qt::'.$curr_class[$c].'::'.$cl->{orig_name}.'() -- AV['.$ar_class.'] is not a blessed SV", "Qt::'.$curr_class[$c].'::'.$cl->{orig_name}.'() -- AV key->_ptr is NULL"));'."\n";
+													$end_xs .= '                        '.$ar_class.' * clv = INT2PTR('.$ar_class.'*, pobj2class(rhv, "'.$ar_class.'", "'.$curr_class[$c].'::'.$cl->{orig_name}.'", "AV['.$ar_class.']"));'."\n";
 													$end_xs .= "                        if ( clv == NULL )\n";
 													$end_xs .= "                                XSRETURN_UNDEF;\n";
 													$end_xs .= "                        ".$pars[$j]{dt}." << clv;\n";
@@ -1494,10 +1494,10 @@ foreach my $module ( @modules ) {
 													$end_xs .= "                while ( HE *he = hv_iternext(hv) ) {\n";
 													$end_xs .= "                        SV *key = HeSVKEY(he);\n";
 													$end_xs .= "                        SV *val = HeVAL(he);\n";
-													$end_xs .= '                        '.$kcl.' *clk = INT2PTR('.$kcl.'*, pobj2class(key, "Qt::'.$kcl.'", "Qt::'.$curr_class[$c].'::'.$cl->{orig_name}.'() -- HV{'.$kcl.'} is not a blessed SV", "Qt::'.$curr_class[$c].'::'.$cl->{orig_name}.'() -- HV key->_ptr is NULL"));'."\n";
+													$end_xs .= '                        '.$kcl.' *clk = INT2PTR('.$kcl.'*, pobj2class(key, "'.$kcl.'", "Qt::'.$curr_class[$c].'::'.$cl->{orig_name}.'", "HV{'.$kcl.'}"));'."\n";
 													$end_xs .= "                        if ( clk == NULL )\n";
 													$end_xs .= "                                XSRETURN_UNDEF;\n";
-													$end_xs .= '                        '.$vcl.' *clv = INT2PTR('.$vcl.'*, pobj2class(val, "Qt::'.$vcl.'", "Qt::'.$curr_class[$c].'::'.$cl->{orig_name}.'() -- HV{...}='.$vcl.' is not a blessed SV", "Qt::'.$curr_class[$c].'::'.$cl->{orig_name}.'() -- HV value->_ptr is NULL"));'."\n";
+													$end_xs .= '                        '.$vcl.' *clv = INT2PTR('.$vcl.'*, pobj2class(val, "'.$vcl.'", "Qt::'.$curr_class[$c].'::'.$cl->{orig_name}.'", "HV{'.$vcl.'}"));'."\n";
 													$end_xs .= "                        if ( clv == NULL )\n";
 													$end_xs .= "                                XSRETURN_UNDEF;\n";
 													$end_xs .= "                        ".$pars[$j]{dt}.".insert(*clk, *clv);\n";
@@ -1564,6 +1564,7 @@ foreach my $module ( @modules ) {
 										for ( my $j = 0 ; $j < $m ; $j++ ) {
 											my $jj = $j;
 											$jj++ if $cl->{type};
+											$jj-- if $cl->{st};
 											if ( $pars[$j]{out} and $std_type{$pars[$j]{tp}} ) {
 												if ( $pars[$j]{tp} eq 'char' or $pars[$j]{tp} eq 'uchar' ) {
 													$end_xs .= "        sv_setpvn(ST(".$jj."), (char *)&".$pars[$j]{dt}.", 1);\n"; }
