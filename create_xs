@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# this script create perl XS file from qt4 header
+# this script create perl XS files from qt4 headers
 
 
 # problems & todo:
@@ -9,8 +9,6 @@
 # todo use std::string
 # todo strint(xxx, ...)
 # todo use C lvalue (  int &fn(); )
-# todo support virtual function
-# todo move protected functions to public using PerlQ[class]
 # what do with QWidget in QtCore ? error ?
 # QMetaType ???
 
@@ -609,12 +607,13 @@ foreach my $module ( @modules ) {
 		$str_h =~ s/\bsigned long/long/g;
 		$str_h =~ s/unsigned long/ulong/g;
 		$str_h =~ s/qreal/double/g;
-		if ( $defined{'Q_WS_X11'} ) {
+		#if ( $defined{'Q_WS_X11'} ) { todo
 			$str_h =~ s/\bQt::HANDLE/ulong/g;
-		}
-		else {
-			$str_h =~ s/\bQt::HANDLE/void */;
-		}
+			$str_h =~ s/\bWId\b/ulong/g;
+		#}
+		#else {
+		#	$str_h =~ s/\bQt::HANDLE/void */;
+		#}
 		$str_h =~ s/(QList|QVector|QHash|QMap|QPair) +</$1</;
 		for my $rpl ( keys %replaces ) {
 			while ( $str_h =~ s/\b$rpl\b/$replaces{$rpl}/g ) {

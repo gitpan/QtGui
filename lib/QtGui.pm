@@ -8,7 +8,7 @@ require Exporter;
 require DynaLoader;
 
 our @ISA = qw(DynaLoader Exporter);
-our $VERSION = '4.000';
+our $VERSION = '4.001';
 
 our @EXPORT = qw(qref);
 our @EXPORT_OK = @EXPORT;
