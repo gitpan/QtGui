@@ -1,4 +1,7 @@
-Revision history for Perl extension QtCore.
+Revision history for Perl extension QtGui.
+
+4.002 Tue Jan 28 2008
+	- rewrite meta.yml amd manifest
 
 4.001 Mon Jan 28 2008
 	- fix bug with WId

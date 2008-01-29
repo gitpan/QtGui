@@ -1,5 +1,5 @@
 name: QtGui
-version: 4.001
+version: 4.002
 author:
     - Vadim Likhota <vadim-lvv@yandex.ru>
 abstract: Perl interface to the Qt4 Gui library
