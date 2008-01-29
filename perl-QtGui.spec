@@ -4,7 +4,7 @@
 
 Summary: 	perl/Qt4 libraries
 Name: 		perl-QtGui
-Version: 	4.000
+Version: 	4.003
 Release: 	0%{?dist}
 
 Group: 		User Interface/Development
@@ -48,5 +48,8 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Jan 28 2008 Vadim Likhota <vadim-lvv@yandex.ru> 4.003
+- update ver
+
 * Wed Nov 26 2007 Vadim Likhota <vadim-lvv@yandex.ru> 4.000
 - create this file
