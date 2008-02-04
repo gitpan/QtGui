@@ -4,7 +4,8 @@ use File::Copy;
 
 our $prefix;
 our $pkgs = 'QtGui';
-my $QtCore_path = '../QtCore';
+my $QtCore_path;
+my $vv = '4.004';
 
 my %args = @ARGV;
 $prefix = $args{-i} if defined $args{-i};
@@ -19,7 +20,8 @@ elsif ( open FF, "/usr/include/QtCore/qglobal.h" ) {
     $prefix = '/usr/include';
 }
 else {
-    die "Error: can not found Qt4 headers\n";
+    die "Error: can not found Qt4 headers\n".
+    "please read README file and point Qt4 headers location\n";
 }
 close FF;
 
@@ -33,6 +35,20 @@ if ( defined $args{-qc} ) {
 my @tpms = ('perlobject.map');
 my $lb = ('-lQtCore -lpthread');
 if ( $pkgs eq 'QtGui' ) {
+    if ( $QtCore_path and open FF, $QtCore_path.'/classes.core' ) {
+	# ok
+    }
+    elsif ( open FF, '../QtCore/classes.core' ) {
+	$QtCore_path = '../QtCore';
+    }
+    elsif ( open FF, '../QtCore-'.$vv.'/classes.core' ) {
+	$QtCore_path = '../QtCore-'.$vv;
+    }
+    else {
+	die "Error: can not find *.core files from QtCore-".$vv."\n".
+	"please read README file and point QtCore directory with *.core files\n";
+    }
+
     push @tpms, 'typemap.core';
     $lb = '-lQtGui '.$lb;
     copy($QtCore_path.'/classes.core', 'classes.core') or die "Copy failed: $!";

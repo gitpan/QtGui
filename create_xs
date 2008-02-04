@@ -587,7 +587,6 @@ foreach my $module ( @modules ) {
 		next if $module eq 'QCoreApplication' and $str_h =~ /QPostEventList/; # not found QPostEventList
 		next if $module eq 'QString' and $str_h =~ /\bNull/;
 		next if $module eq 'QTemporaryFile' and $str_h =~ /OpenMode/; # conflict 2 'open()'
-		#next if $module eq 'QAbstractPageSetupDialog' and $str_h =~ /QAbstractPageSetupDialogPrivate &ptr/; # todo
 		next if $str_h =~ /^ *friend +(class|struct)/;
 		next if $str_h =~ /^typedef/ and ( $str_h =~ /int8;/ or $str_h =~ /int16;/ or $str_h =~ /int32;/ or $str_h =~ /longlong;/ or $str_h =~ /long qint64;/ or $str_h =~ /qreal;/ or $str_h =~ /uchar;/ or $str_h =~ /ushort/ or $str_h =~ /uint/ or $str_h =~ /ulong/);
 		$str_h =~ s/unsigned char/uchar/g;
@@ -721,7 +720,13 @@ foreach my $module ( @modules ) {
 				if ( $bs ) {
 					foreach my $bs0 ( split /,/, $bs ) {
 						$classes{$cl}{abst} .= $classes{$bs0}{abst} if $classes{$bs0}{abst};
+						if ( $classes{$cl}{prot_enum} ) {
+							$classes{$cl}{prot_enum} .= '+'.$classes{$bs0}{prot_enum}; }
+						else {
+							$classes{$cl}{prot_enum} = $classes{$bs0}{prot_enum};
+						}
 					}
+
 				}
 				$virt_class = 0;
 				print " = $cl =\n";
@@ -836,9 +841,17 @@ foreach my $module ( @modules ) {
 						print FXS "    const uint *qt_meta_data_Perl".$curr_class[$c].";\n";
 						print FXS "    void signls(int _id, void **_a);\n";
 						print FXS "    void slts(int _id, void **_a);\n//protected or virtual functions\n";
-						foreach my $enum ( keys %{$classes{$curr_class[$c]}{prot_enum}} ) {
-							print FXS "    using ".$curr_class[$c]."::".$enum."; // enum\n";
+						if ( $classes{$curr_class[$c]}{prot_enum} ) {
+							foreach my $enum ( split /\+/, $classes{$curr_class[$c]}{prot_enum} ) {
+								print FXS "    using ".$enum."; // enum\n";
+								if ( $enum =~ /[0-9A-Za-z]+::([0-9A-Za-z]+)/ ) {
+									$redefine{'#define Perl'.$curr_class[$c].'__'.$1.' Perl'.$curr_class[$c].'::'.$1}++;
+									$std_type{'Perl'.$curr_class[$c].'::'.$1} = 7;
+									printf TM "%s\tT_ENUM\n", "Perl$curr_class[$c]::$1";
+								}
+							}
 						}
+						my %func_counts;
 						foreach my $cl ( @{$class_func[$c]} ) {
 							if ( ( $cl->{protected} or $cl->{virt} ) and $cl->{type} ) {
 								#print FXS "    ";
@@ -871,7 +884,8 @@ foreach my $module ( @modules ) {
 									}
 								}
 								else {
-									print FXS "    using ".$curr_class[$c]."::".$cl->{orig_name}.";\n";
+									print FXS "    using ".$curr_class[$c]."::".$cl->{orig_name}.";\n" unless $func_counts{$cl->{orig_name}};
+									$func_counts{$cl->{orig_name}}++;
 								}
 							}
 						}
@@ -913,9 +927,9 @@ foreach my $module ( @modules ) {
 						print FXS "};\n\n"; # if ( $classes{$curr_class[$c]}{dest} );
 						print FXS "void Perl$curr_class[$c]::signls(int _id, void **_a)\n{\n";
 						print FXS "    QMetaObject::activate(this, &staticMetaObject, _id, _a);\n};\n\n";
-						print FXS "const QMetaObject *Perl$curr_class[$c]::metaObject() const\n{\n";
+						print FXS "const QMetaObject *Perl".$curr_class[$c]."::metaObject() const\n{\n";
 						print FXS "    return &staticMetaObject;\n}\n\n";
-						print FXS "void Perl$curr_class[$c]::slts(int _id, void **_a)\n{\n";
+						print FXS "void Perl".$curr_class[$c]."::slts(int _id, void **_a)\n{\n";
 						print FXS "    common_slots(_id, _a, qt_meta_stringdata_Perl", $curr_class[$c], ", qt_meta_data_Perl", $curr_class[$c], ", (void *)this, \"Qt::".$curr_class[$c]."::slots\");\n";
 						print FXS "}\n";
 						print FXS "void *Perl".$curr_class[$c]."::qt_metacast(const char *_clname)\n{\n";
@@ -940,6 +954,7 @@ foreach my $module ( @modules ) {
 					$end_xs .= "\nMODULE = Qt::".$module."\t\tPACKAGE = Qt::";
 					$end_xs .= $curr_class[$c]."\n\n";
 					$end_xs .= "PROTOTYPES: DISABLE\n\n";
+					#print '    prot_enum: '.$classes{$curr_class[$c]}{prot_enum}."\n";
 					LABEL1:
 					foreach my $cl ( @{$class_func[$c]} ) {
 						next if $cl->{skip};
@@ -1113,6 +1128,14 @@ foreach my $module ( @modules ) {
 									#print "* $bb -> $bbb *";
 									$pars[$j]{tp} =~ s/$bb/$bbb/;
 								}
+								if ( $object_class and $classes{$curr_class[$c]}{prot_enum} ) {
+									my $tp = $pars[$j]{tp};
+									if ( $classes{$curr_class[$c]}{prot_enum} =~ /$tp/ ) {
+										my $tp2 = 'Perl'.$curr_class[$c];
+										$tp =~ /^[0-9A-Za-z]+::([0-9A-Za-z]+)$/;
+										$pars[$j]{tp} = $tp2.'::'.$1;
+									}
+								}
 								if ( $pars[$j]{tp} =~ /^(Q[A-Za-z]+)<([A-Za-z:]+)>/ and not $complex_type{$pars[$j]{tp}} ) {
 									my ($xx, $zz) = ($1, $2);
 									if ( $std_type{$zz} and ( $std_type{$zz} == 2 or $std_type{$zz} == 6 or $std_type{$zz} == 7 ) and ( $xx eq 'QList' or $xx eq 'QVector' ) ) {
@@ -1255,6 +1278,21 @@ foreach my $module ( @modules ) {
 										else {
 											print "!!! need module ".$pars[$j]{tp}." for virt fn in $$icl{orig_name} (2)\n";
 										}
+									}
+									elsif ( $complex_type{$pars[$j]{tp}} == 11 ) {
+										$pars[$j]{tp} =~ /^Q[A-Za-z]+<([0-9A-Za-z]+) \* ?>/;
+										my $class = $1;
+										print FXS "        {\n";
+										print FXS "                AV *av = newAV();\n";
+										print FXS "                int asize = ".$pars[$j]{dt}.".size();\n";
+										print FXS "                for ( int i = 0 ; i < asize ; ++i ) {\n";
+										print FXS "                        $class *clv = ".$pars[$j]{dt}.".at(i);\n";
+										print FXS "                        SV *rhv = newSV(0);\n";
+										print FXS "                        rhv = class2pobj(PTR2IV(clv), \"Qt::$class\", 0);\n";
+										print FXS "                        av_push(av, rhv);\n";
+										print FXS "                };\n";
+										print FXS "                XPUSHs(sv_2mortal(newRV_noinc((SV*)av)));\n";
+										print FXS "        }\n";
 									}
 									else {
 										print "!!! not found input type ".$pars[$j]{tp}." for virtual function ".$icl->{orig_param}."()\n";
@@ -1407,6 +1445,7 @@ foreach my $module ( @modules ) {
 										$end_xs .= "        int fn;\n        char *stringdata;\n        uint *data;\n";
 									}
 									$end_xs .= "    CODE:\n";
+									$end_xs .= '        printf("new '.$curr_class[$c].'\n");'."\n" if $add_out and not $cl->{type};
 									if ( not $cl->{type} and ( $curr_class[$c] eq 'QCoreApplication' or $curr_class[$c] eq 'QApplication' ) ) {
 										$end_xs .= "        pargc = argc;\n";
 										$end_xs .= "        pargv = argv;\n";
@@ -1763,7 +1802,13 @@ foreach my $module ( @modules ) {
 			if ( $str_h =~ /^enum (?:[0-9A-Za-z_]+ )?\{/ and $str_h =~ /\};$/ ) {
 				if ( $str_h =~ /^enum ([0-9A-Za-z_]+) \{ ?\b(.+)\b ?\};$/ ) {
 					my ($enum_name, $enum_body) = ($1, $2);
-					$classes{$curr_class[$c]}{prot_enum}{$enum_name}++ if $public == -1;
+					if ( $public == -1 ) {
+						if ( $classes{$curr_class[$c]}{prot_enum} ) {
+							$classes{$curr_class[$c]}{prot_enum} .= '+'.$curr_class[$c].'::'.$enum_name; }
+						else {
+							$classes{$curr_class[$c]}{prot_enum} = $curr_class[$c].'::'.$enum_name;
+						}
+					}
 					$redefine{'#define '.$curr_class[$c].'__'.$enum_name.' '.$curr_class[$c].'::'.$enum_name}++;
 					$std_type{$curr_class[$c].'::'.$enum_name} = 7;
 					printf TM "%s\tT_ENUM\n", "$curr_class[$c]::$enum_name";
@@ -1801,7 +1846,7 @@ foreach my $module ( @modules ) {
 											$enm_cnt += $classes{$curr_class[$c]}{all_enums}{$ee};
 										}
 										else {
-											print " emun ??? undef $ee \n";
+											print " enum ??? undef $ee \n";
 										}
 				    				}
 								}
@@ -1892,19 +1937,10 @@ foreach my $module ( @modules ) {
 			}
 			elsif ( $pkgs eq 'QtGui' ) {
 				next if ( $curr_class[$c] eq 'QAccessibleApplication' or $curr_class[$c] eq 'QAccessibleWidget' or $curr_class[$c] eq 'QAccessibleWidgetEx' ) and $ww =~ /navigate/;
-				next if $module eq 'QAbstractSlider' and $ww eq 'sliderChange'; # protected enum
-				next if $module eq 'QDial' and $ww eq 'sliderChange';
 				next if $module eq 'QFileDialog' and $ee =~ /QFileDialogArgs/; # ??? not found
-				next if $module eq 'QGraphicsItem' and $ee =~ /Extension/; # protected enum
 				next if $module eq 'QGraphicsScene' and $ww eq 'drawItems'; # todo: *items[], options[]
 				next if $module eq 'QGraphicsView' and $ww eq 'drawItems'; # todo: *items[], options[]
 				next if $module eq 'QGridLayout' and $ww eq 'addItem' and $public == -1;
-				next if $module eq 'QHeaderView' and $ww eq 'resizeSections';  # protected enum
-				next if $module eq 'QHeaderView' and $ww eq 'moveCursor';  # protected enum
-				next if $module eq 'QListView' and $ww eq 'moveCursor';  # protected enum
-				next if $module eq 'QScrollBar' and $ww eq 'sliderChange';  # protected enum
-				next if $module eq 'QTableView' and $ww eq 'moveCursor';  # protected enum
-				next if $module eq 'QTreeView' and $ww eq 'moveCursor';  # protected enum
 				next if $module eq 'QSound' and $ww eq 'play' and $static_fn; # conflict slot play() with static play(filename)
 				if ( not $qq ) {
 					if ( $module eq 'QApplication') {
@@ -2382,8 +2418,8 @@ foreach my $module ( @modules ) {
 		print FPM "require Exporter;\n";
 		print FPM "our \@ISA = qw(Exporter";
 		for my $ss ( split /,/, $classes{$curr_class[$i]}{base} ) {
-			$classes{$curr_class[$i]}{use_class}{$ss}++ if ( $ss and not $ss =~ /Q(Vector|Stack|LinkedList|List|Queue|Map|Hash|Set|Cache|Pair)/  and $classes{$ss}{module} ne $classes{$curr_class[$i]}{module} );
-			print FPM ' Qt::'.$ss if ( $ss and not $ss =~ /Q(Vector|Stack|LinkedList|List|Queue|Map|Hash|Set|Cache|Pair)/ );
+			$classes{$curr_class[$i]}{use_class}{$ss}++ if ( $ss and not $ss =~ /Q(Vector|Stack|LinkedList|List|Queue|Map|Hash|Set|Cache|Pair)</  and $classes{$ss}{module} ne $classes{$curr_class[$i]}{module} );
+			print FPM ' Qt::'.$ss if ( $ss and not $ss =~ /Q(Vector|Stack|LinkedList|List|Queue|Map|Hash|Set|Cache|Pair)</ );
 		}
 		print FPM ");\n\n";
 

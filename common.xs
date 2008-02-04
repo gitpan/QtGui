@@ -103,39 +103,6 @@ class2pobj(IV iv, const char *class_name, int no_ptr)
         return sv_bless(newRV_noinc((SV*)hv), gv_stashpv(class_name, 0));
 }
 
-/* orig O_OBJECT:
-	if( sv_derived_from($arg, \"Qt::${(my $ttt = $type) =~ s/^(?:Perl)?([0-9A-Za-z_]+) \* /$1/;\$ttt}\") && (SvTYPE(SvRV($arg)) == SVt_PVHV) ) 
-	{
-	        HV *hv = (HV*)SvRV( $arg );
-	        SV **ssv = hv_fetch(hv, \"_ptr\", 4, 0);
-	        if ( ssv != NULL )
-	    	        $var = INT2PTR($type,SvIV(*ssv));
-	        else {
-			warn( \"${Package}::$func_name() -- ${var}->{_ptr} is NULL\" );
-			XSRETURN_UNDEF;
-	        }
-	}
-	else {
-		warn( \"${Package}::$func_name() -- $var is not a blessed ${(my $ttt = $type) =~ s/^(?:Perl)?([0-9A-Za-z_]+) \* /$1/;\$ttt}\" );
-		XSRETURN_UNDEF;
-	}
-
-IV
-pobj2class(SV *sv, const char *class_name, const char *fn_warn, const char *ptr_warn)
-{
-    if( sv_derived_from(sv, class_name) && (SvTYPE(SvRV(sv)) == SVt_PVHV) ) {
-	HV *hv = (HV*)SvRV( sv );
-	SV **ssv = hv_fetch(hv, "_ptr", 4, 0);
-	if ( ssv != NULL )
-	    return SvIV(*ssv);
-	warn( ptr_warn );
-	return (IV)NULL;
-    }
-    warn( fn_warn );
-    return (IV)NULL;
-}
-*/
-
 
 IV
 pobj2class(SV *sv, const char *class_name, const char *func, const char *var)
@@ -170,7 +137,6 @@ create_meta_data (char *sss, AV *signal_av, AV *slot_av, char **stringdata, uint
     SV **ssv;
 
 	cnt_s = av_len(signal_av) + av_len(slot_av) + 2;
-	//*data = (uint*)safemalloc(sizeof(uint)*( 11 + 5 * cnt_s ));
 	*data = new uint[11 + 5 * cnt_s];
 	if ( !data )
 	    Perl_croak(aTHX_ "Can not allocate memory for data");
@@ -192,21 +158,16 @@ create_meta_data (char *sss, AV *signal_av, AV *slot_av, char **stringdata, uint
 	    int qq = fn;
 	    sss[fn] = 0;
 	    fn++;
-	    // while ( av_len(signal_av) > -1 ) {
 	    avlen = av_len(signal_av);
-	    // printf("av_sig %d\n", avlen);
 	    for( int a = 0; a <= avlen; ++a ){
 		ssv = av_fetch( signal_av, a, 0 );
-		// SV *sv1 = av_shift(signal_av);
 		if ( ssv != NULL && SvPOK( *ssv ) ) {
 		    (*data)[cnt_s++] = fn;
 		    (*data)[cnt_s++] = qq;
 		    (*data)[cnt_s++] = qq;
 		    (*data)[cnt_s++] = qq;
 		    (*data)[cnt_s++] = 0x05;
-		    // char * sl = (char *)safemalloc( SvCUR(*ssv) + 1 );
 		    char * sl = (char *)SvPV( *ssv, ln );
-		    // strcpy( sl, SvPV( *ssv, na ) );
 		    for ( int i = 0 ; i <= ln ; i++ )
 			sss[i+fn] = sl[i];
 		    fn += ln;
@@ -214,12 +175,9 @@ create_meta_data (char *sss, AV *signal_av, AV *slot_av, char **stringdata, uint
 		    
 		}
 	    }
-	    // while ( av_len(slot_av) > -1 ) {
 	    avlen = av_len(slot_av);
-	    // printf("av_slot %d\n", avlen);
 	    for( int a = 0; a <= avlen; ++a ){
 		ssv = av_fetch( slot_av, a, 0 );
-		// SV *sv1 = av_shift(slot_av);
 		if( ssv != NULL  && SvPOK( *ssv ) ) {
 		    (*data)[cnt_s++] = fn;
 		    (*data)[cnt_s++] = qq;
@@ -238,7 +196,6 @@ create_meta_data (char *sss, AV *signal_av, AV *slot_av, char **stringdata, uint
 	(*data)[cnt_s] = 0;
 
 	
-	// *stringdata = (char *)safemalloc(sizeof(char)*fn+1);
 	*stringdata = new char[fn+1];
 	if ( !(*stringdata) )
 	    Perl_croak(aTHX_ "Can not allocate memory for stringdata");
@@ -260,7 +217,6 @@ create_meta_data (char *sss, AV *signal_av, AV *slot_av, char **stringdata, uint
 }
 
 
-// void common_slots(int _id, void **_a, const char *stringdata, const uint *data, int perl_cl_ref, char *clFn)
 void common_slots(int _id, void **_a, const char *stringdata, const uint *data, void *class_ptr, char *clFn)
 {
     int i = 0, cnt = 0, k = 0;
@@ -322,56 +278,5 @@ void common_slots(int _id, void **_a, const char *stringdata, const uint *data, 
     FREETMPS;
     LEAVE;
 };
-
-
-/*
-PQt4ClList *PQt4ClList::self = 0;
-
-PQt4ClList::PQt4ClList()
-{
-    self = this;
-};
-
-PQt4ClList::~PQt4ClList()
-{
-}
-
-
-PQt4ClList *
-PQt4ClList::getSelf()
-{
-    if ( !self )
-        new PQt4ClList();
-
-    return self;
-}
-
-
-bool
-PQt4ClList::saveCl(void *cl, SV *pcl)
-{
-    ulong lcl = (ulong)cl;
-    printf("cllist: %l", lcl);
-    
-    if ( clHash.contains(lcl) )
-        return false;
-    
-    clHash.insert(lcl, pcl);
-    return true;
-}
-
-
-SV *
-PQt4ClList::getCl(void *cl)
-{
-    ulong lcl = (ulong)cl;
-    
-    if ( clHash.constains(lcl) )
-        return clHash.value(lvl);
-
-    return NULL;
-}
-*/
-
 
 
